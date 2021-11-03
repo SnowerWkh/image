@@ -730,7 +730,13 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 	if c.sys != nil && c.sys.DockerInsecureSkipTLSVerify != types.OptionalBoolUndefined {
 		c.tlsClientConfig.InsecureSkipVerify = c.sys.DockerInsecureSkipTLSVerify == types.OptionalBoolTrue
 	}
-	tr := tlsclientconfig.NewTransport()
+	var tr *http.Transport = nil
+	proxy := ctx.Value("dest-proxy")
+	if proxy != nil {
+		tr = tlsclientconfig.NewTransportWithProxy(proxy.(*url.URL))
+	} else {
+		tr = tlsclientconfig.NewTransport()
+	}
 	tr.TLSClientConfig = c.tlsClientConfig
 	c.client = &http.Client{Transport: tr}
 

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,6 +100,25 @@ func NewTransport() *http.Transport {
 	}
 	tr := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         direct.DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
+		DisableKeepAlives: true,
+	}
+	if _, err := sockets.DialerFromEnvironment(direct); err != nil {
+		logrus.Debugf("Can't execute DialerFromEnvironment: %v", err)
+	}
+	return tr
+}
+
+func NewTransportWithProxy(proxy *url.URL) *http.Transport {
+	direct := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+		DualStack: true,
+	}
+	tr := &http.Transport{
+		Proxy:               http.ProxyURL(proxy),
 		DialContext:         direct.DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
 		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
